@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+*.egg-info/
+.pytest_cache/
+# Telethon sessions and any other credentials: never commit.
+secrets/
+*.session
+*.session-journal
