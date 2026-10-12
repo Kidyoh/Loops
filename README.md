@@ -93,6 +93,36 @@ rank fusion), `list_commitments`, `get_thread` and `find_person`. Every claim ci
 If the model answers without looking anything up, or tool calling errors, it falls back
 to a fixed router (classify → tool → answer). Set `AGENT_MODE=router` to always use it.
 
+## Telegram bot and daily digest
+
+Create a bot with @BotFather and set `BOT_TOKEN`. Set `OWNER_TELEGRAM_ID` to your
+numeric user id. The bot ignores everyone else.
+
+```bash
+loops bot        # long-polling bot
+loops worker     # sync every SYNC_INTERVAL_MIN (5) min, digest daily at DIGEST_HOUR (8) TIMEZONE
+loops digest     # send the digest now
+```
+
+Bot commands: `/promises`, `/waiting`, `/postponed`, `/theypromised`, `/done <id>` (or
+the ✅ buttons), `/digest`, `/sync`. Any other text goes to the query agent. The answer
+streams in by editing the reply, and its citations become numbered links to the source.
+
+The digest lists overdue promises, what's due today, and who you're waiting on. It is
+skipped on days with nothing open.
+
+A Postgres advisory lock lets only one sync run at a time across the worker, API and bot.
+
+## Run everything
+
+```bash
+docker compose up -d --build     # db, migrate, api, worker, bot
+```
+
+`./secrets` is mounted into the containers for the Telegram session. Run
+`loops telegram-login` once on the host (or `docker compose run --rm api loops telegram-login`)
+before starting the worker.
+
 ## API
 
 ```

@@ -122,6 +122,9 @@ def main(argv: list[str] | None = None) -> None:
     loops_cmd = sub.add_parser("loops", help="print open loops (commitments)")
     loops_cmd.add_argument("--kind", choices=["i_promised", "they_promised", "waiting_on", "postponed"])
     loops_cmd.add_argument("--status", default="open", choices=["open", "done", "stale", "any"])
+    sub.add_parser("bot", help="run the Telegram bot")
+    sub.add_parser("worker", help="run the scheduler (sync every few minutes, daily digest)")
+    sub.add_parser("digest", help="send the daily digest now")
     people = sub.add_parser("people", help="review cross-source people merges")
     people.add_argument("action", choices=["suggest", "merge"])
     people.add_argument("ids", nargs="*", type=int, help="merge: KEEP_ID OTHER_ID")
@@ -146,6 +149,18 @@ def main(argv: list[str] | None = None) -> None:
         asyncio.run(_ask(" ".join(args.question), args.mode))
     elif args.cmd == "loops":
         asyncio.run(_print_loops(args.kind, args.status))
+    elif args.cmd == "bot":
+        from loops.bot.app import run_bot
+
+        run_bot()
+    elif args.cmd == "worker":
+        from loops.worker.main import run_worker
+
+        asyncio.run(run_worker())
+    elif args.cmd == "digest":
+        from loops.bot.digest import send_digest
+
+        print("sent" if asyncio.run(send_digest()) else "nothing to send (or bot not configured)")
     elif args.cmd == "people":
         asyncio.run(_people(args.action, args.ids, args.apply))
 

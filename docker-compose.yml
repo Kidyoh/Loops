@@ -33,6 +33,26 @@ services:
     command: uvicorn loops.api.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    volumes:
+      - ./secrets:/app/secrets
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *app
+    command: loops worker
+    volumes:
+      - ./secrets:/app/secrets
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  bot:
+    <<: *app
+    command: loops bot
+    volumes:
+      - ./secrets:/app/secrets
     depends_on:
       migrate:
         condition: service_completed_successfully
