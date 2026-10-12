@@ -5,8 +5,7 @@ Qwen3-Embedding-8B) are indexed via a `halfvec` expression index, and queries mu
 the same expression for the index to be picked up.
 """
 
-from sqlalchemy import literal_column
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy import TextClause, text
 
 HNSW_MAX_VECTOR_DIM = 2000
 
@@ -27,13 +26,13 @@ def hnsw_index_sql(dim: int) -> str:
     )
 
 
-def cosine_distance_sql(dim: int, param: str = ":qvec") -> ColumnElement:
-    """Cosine distance between chunks.embedding and a bound query vector parameter."""
+def cosine_distance_sql(dim: int, param: str = ":qvec") -> TextClause:
+    """Cosine distance between chunks.embedding and a bound query vector (pass it at execute)."""
     if uses_halfvec(dim):
-        expr = f"(chunks.embedding::halfvec({dim})) <=> (CAST({param} AS vector)::halfvec({dim}))"
+        expr = f"(chunks.embedding::halfvec({dim})) <=> (CAST(CAST({param} AS text) AS vector)::halfvec({dim}))"
     else:
-        expr = f"chunks.embedding <=> CAST({param} AS vector)"
-    return literal_column(expr)
+        expr = f"chunks.embedding <=> CAST(CAST({param} AS text) AS vector)"
+    return text(expr)
 
 
 def to_pgvector_literal(vec: list[float]) -> str:

@@ -62,6 +62,36 @@ loops people merge KEEP OTHER   # merge two people records
 Promotions, social, spam, trash and drafts are skipped. Quoted replies and signatures are
 stripped so only the new text of each email is stored.
 
+## Asking questions
+
+```bash
+loops ask "What did Robi say about the Habesha pitch?"
+loops ask --mode router "Who am I waiting on?"
+```
+
+The agent has four tools: `search_messages` (vector + full-text, merged with reciprocal
+rank fusion), `list_commitments`, `get_thread` and `find_person`. Every claim cites
+`[source: <message_id>]`, and citations to messages the model never saw are dropped.
+If the model answers without looking anything up, or tool calling errors, it falls back
+to a fixed router (classify → tool → answer). Set `AGENT_MODE=router` to always use it.
+
+## API
+
+```
+POST   /login                    {password} -> session cookie (or send Bearer WEB_PASSWORD)
+POST   /ask                      {question, history?} -> SSE: tool, token..., citations, done
+GET    /commitments?kind&status&person
+PATCH  /commitments/{id}         {status}
+GET    /messages/{id}            message + surrounding thread
+GET    /sources                  sync status
+POST   /sources/gmail/connect    -> {url} to start OAuth
+GET    /sources/gmail/callback
+DELETE /sources/{id}             wipe a source and everything derived from it
+POST   /sync                     trigger an incremental sync
+```
+
+Run it with `uvicorn loops.api.main:app` or `docker compose up api`.
+
 ## Tests
 
 ```bash

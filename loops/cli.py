@@ -35,6 +35,25 @@ async def _sync(kind: str | None) -> None:
     print(await process_pending())
 
 
+async def _ask(question: str, mode: str | None) -> None:
+    import sys
+
+    from loops.agent.agent import run_agent
+    from loops.db.session import session_scope
+    from loops.llm.token_factory import get_llm
+
+    async with session_scope() as session:
+        async for event in run_agent(session, get_llm(), question, mode=mode):
+            if event["type"] == "tool":
+                print(f"  · {event['name']}({event['args']})", file=sys.stderr)
+            elif event["type"] == "token":
+                print(event["text"], end="", flush=True)
+            elif event["type"] == "citations":
+                print("\n")
+                for c in event["items"]:
+                    print(f"[{c['message_id']}] {c['source']} · {c['sender']} · {c['sent_at'][:10]} · {c['url'] or c['app_url']}")
+
+
 async def _gmail_login() -> None:
     import secrets
     from urllib.parse import parse_qs, urlparse
@@ -84,6 +103,9 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("sync-gmail", help="sync Gmail, then chunk + embed")
     sub.add_parser("sync", help="sync every source, then chunk + embed")
     sub.add_parser("process", help="chunk + embed anything pending")
+    ask = sub.add_parser("ask", help="ask a question; prints a cited answer")
+    ask.add_argument("question", nargs="+")
+    ask.add_argument("--mode", choices=["tools", "router"])
     people = sub.add_parser("people", help="review cross-source people merges")
     people.add_argument("action", choices=["suggest", "merge"])
     people.add_argument("ids", nargs="*", type=int, help="merge: KEEP_ID OTHER_ID")
@@ -104,6 +126,8 @@ def main(argv: list[str] | None = None) -> None:
         asyncio.run(_sync(SYNC_COMMANDS[args.cmd]))
     elif args.cmd == "process":
         asyncio.run(_sync(None))
+    elif args.cmd == "ask":
+        asyncio.run(_ask(" ".join(args.question), args.mode))
     elif args.cmd == "people":
         asyncio.run(_people(args.action, args.ids, args.apply))
 

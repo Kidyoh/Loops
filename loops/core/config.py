@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     timezone: str = "Africa/Addis_Ababa"
     digest_hour: int = 8
 
+    # "tools": free tool calling; "router": fixed classify -> tool -> answer pipeline.
+    agent_mode: str = "tools"
+
     extract_min_confidence: float = 0.6
     waiting_on_days: int = 3
 
