@@ -72,7 +72,7 @@ async def test_sync_then_process_end_to_end(db):
     client.messages[2].append(tg_msg(3, NOW, "Thanks! Also the budget sheet please", client.dialogs[0].entity))
     assert await sync_telegram(client) == 1
 
-    stats = await process_pending(FakeLLM())
+    stats = await process_pending(FakeLLM(), extract=False)
     assert stats["chunks"] >= 2 and stats["embedded"] == stats["chunks"]
 
     await db.rollback()

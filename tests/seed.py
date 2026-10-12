@@ -35,6 +35,6 @@ async def seed(session) -> dict[str, int]:
         ],
     )
     await session.commit()
-    await process_pending(FakeLLM())
+    await process_pending(FakeLLM(), extract=False)
     rows = (await session.execute(select(Message.external_id, Message.id))).all()
     return {ext: mid for ext, mid in rows}

@@ -54,6 +54,19 @@ async def _ask(question: str, mode: str | None) -> None:
                     print(f"[{c['message_id']}] {c['source']} · {c['sender']} · {c['sent_at'][:10]} · {c['url'] or c['app_url']}")
 
 
+async def _print_loops(kind: str | None, status: str) -> None:
+    from loops.agent.queries import list_commitments
+    from loops.db.session import session_scope
+
+    async with session_scope() as session:
+        items = await list_commitments(session, kind=kind, status=None if status == "any" else status, limit=500)
+    for c in items:
+        due = f" (due {c.due_at:%Y-%m-%d})" if c.due_at else ""
+        print(f"#{c.id:<5} {c.kind:<13} {c.person or '?':<20} {c.summary}{due}  [{c.source} {c.source_message_id}]")
+    if not items:
+        print("no open loops")
+
+
 async def _gmail_login() -> None:
     import secrets
     from urllib.parse import parse_qs, urlparse
@@ -106,6 +119,9 @@ def main(argv: list[str] | None = None) -> None:
     ask = sub.add_parser("ask", help="ask a question; prints a cited answer")
     ask.add_argument("question", nargs="+")
     ask.add_argument("--mode", choices=["tools", "router"])
+    loops_cmd = sub.add_parser("loops", help="print open loops (commitments)")
+    loops_cmd.add_argument("--kind", choices=["i_promised", "they_promised", "waiting_on", "postponed"])
+    loops_cmd.add_argument("--status", default="open", choices=["open", "done", "stale", "any"])
     people = sub.add_parser("people", help="review cross-source people merges")
     people.add_argument("action", choices=["suggest", "merge"])
     people.add_argument("ids", nargs="*", type=int, help="merge: KEEP_ID OTHER_ID")
@@ -128,6 +144,8 @@ def main(argv: list[str] | None = None) -> None:
         asyncio.run(_sync(None))
     elif args.cmd == "ask":
         asyncio.run(_ask(" ".join(args.question), args.mode))
+    elif args.cmd == "loops":
+        asyncio.run(_print_loops(args.kind, args.status))
     elif args.cmd == "people":
         asyncio.run(_people(args.action, args.ids, args.apply))
 

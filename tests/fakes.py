@@ -30,11 +30,11 @@ class FakeLLM:
         return reply
 
     async def chat_json(self, messages, **kw):
-        import json
+        from loops.llm.token_factory import parse_json_loose
 
         msg = await self.chat(messages, **kw)
         content = msg["content"]
-        return json.loads(content) if isinstance(content, str) else content
+        return parse_json_loose(content) if isinstance(content, str) else content
 
     async def chat_stream(self, messages, **kw):
         msg = await self.chat(messages, **kw)

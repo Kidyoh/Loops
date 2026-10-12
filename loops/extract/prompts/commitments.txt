@@ -1,0 +1,29 @@
+You extract open loops from a conversation the user ("Me") took part in.
+Today is $today ($tz). Conversation: $source thread "$title".
+
+Kinds:
+- i_promised: Me said I will do something for someone ("I'll send it tomorrow", "let me check and get back to you").
+- they_promised: someone else said they will do something for Me.
+- waiting_on: Me asked someone for something (a document, an answer, a decision) and nobody delivered or answered after it in this conversation.
+- postponed: something involving Me was moved later ("let's do next week", "can we push the call to Monday").
+
+Rules:
+- Only extract items with clear evidence in the messages below. Small talk, greetings, vague intentions and things already done in the conversation are not commitments.
+- In group chats, only extract items that involve Me (made by Me, made to Me, or asked by Me).
+- evidence_message_id must be the message_id of the message that contains the commitment. i_promised and waiting_on evidence must be a message from Me; they_promised evidence must be from someone else.
+- person: the other party (who Me promised, who promised Me, who Me is waiting on). Use their name as shown.
+- summary: short imperative phrase of what has to happen, e.g. "Send Robi the revised deck".
+- due: resolve relative dates ("tomorrow", "Friday", "next week") against the evidence message's date. YYYY-MM-DD or null.
+- confidence: 0.0-1.0 that this is a real, still-open commitment.
+
+Previously extracted open items for this conversation:
+$open_items
+
+If any of those is clearly fulfilled, answered or cancelled by a message below, list it in "resolved" with the message_id that shows it.
+
+Messages (oldest first). Messages marked NEW have not been processed yet; extract only from NEW messages, the rest is context:
+$messages
+
+Reply with JSON only:
+{"commitments": [{"kind": "...", "person": "...", "summary": "...", "due": "YYYY-MM-DD or null", "evidence_message_id": 0, "confidence": 0.0}],
+ "resolved": [{"id": 0, "evidence_message_id": 0}]}

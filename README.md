@@ -62,6 +62,24 @@ loops people merge KEEP OTHER   # merge two people records
 Promotions, social, spam, trash and drafts are skipped. Quoted replies and signatures are
 stripped so only the new text of each email is stored.
 
+## Open loops
+
+After chunking and embedding, every thread with new messages goes through Nemotron in
+strict JSON mode. It extracts `i_promised`, `they_promised`, `waiting_on` and `postponed`
+items, each tied to the message that proves it. Items below `EXTRACT_MIN_CONFIDENCE`
+(0.6) are dropped, and so are items whose evidence doesn't fit the kind (an
+`i_promised` must come from you). The thread's open items go back into the prompt, so a
+later message can mark them done.
+
+A rule that needs no model adds `waiting_on` when the last message in a thread is yours,
+asks for something, and has gone `WAITING_ON_DAYS` (3) without a reply. It closes on its
+own when someone replies.
+
+```bash
+loops process                    # chunk, embed, extract
+loops loops --kind waiting_on    # print open loops
+```
+
 ## Asking questions
 
 ```bash
