@@ -195,3 +195,29 @@ async def store_messages(session: AsyncSession, source: Source, items: list[Inco
         thread.participants = sorted(participant_ids)
     await session.flush()
     return inserted
+
+
+def _name_key(name: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", name.lower()).split())
+
+
+async def suggest_merges(session: AsyncSession) -> list[tuple[Person, Person]]:
+    """Pairs of (email-only person, telegram-only person) sharing a name or alias.
+
+    Cross-source identities can't be linked by id, so this is a review list rather than
+    an automatic merge. Single-word names are skipped as too ambiguous.
+    """
+    people = (await session.execute(select(Person).where(Person.is_me.is_(False)))).scalars().all()
+    by_name: dict[str, list[Person]] = defaultdict(list)
+    for p in people:
+        for name in {p.display_name, *(p.aliases or [])}:
+            key = _name_key(name)
+            if len(key.split()) >= 2:
+                by_name[key].append(p)
+    pairs: dict[tuple[int, int], tuple[Person, Person]] = {}
+    for group in by_name.values():
+        mail = [p for p in group if p.emails and not p.telegram_ids]
+        tg = [p for p in group if p.telegram_ids and not p.emails]
+        if len(mail) == 1 and len(tg) == 1:
+            pairs[(mail[0].id, tg[0].id)] = (mail[0], tg[0])
+    return list(pairs.values())

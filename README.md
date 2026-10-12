@@ -46,6 +46,22 @@ Synced: DMs and groups you've posted in. Skipped: channels, bots, muted mega-gro
 Override per chat with `TG_CHAT_ALLOWLIST` / `TG_CHAT_DENYLIST` (JSON lists of chat ids).
 `TG_MAX_CHATS` caps chats per run to avoid FloodWait on the first backfill.
 
+## Gmail
+
+Create an OAuth client (type "Web application") in Google Cloud, enable the Gmail API,
+keep the consent screen in **testing** mode and add your address as a test user. Set the
+redirect URI to `GMAIL_REDIRECT_URI`.
+
+```bash
+loops gmail-login               # open the URL, approve, paste the redirect URL back
+loops sync-gmail                # backfill, then history-based incremental
+loops people suggest            # same-name people seen on Gmail and Telegram
+loops people merge KEEP OTHER   # merge two people records
+```
+
+Promotions, social, spam, trash and drafts are skipped. Quoted replies and signatures are
+stripped so only the new text of each email is stored.
+
 ## Tests
 
 ```bash
