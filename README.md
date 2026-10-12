@@ -35,6 +35,17 @@ loops llm-check                 # one chat + one embedding call
 `EMBED_DIM` must match the embedding model output. Above 2000 dimensions the HNSW
 index is built on a `halfvec` cast (needs pgvector >= 0.7, which the compose image has).
 
+## Telegram
+
+```bash
+loops telegram-login            # phone + code (+ 2FA); writes an encrypted session
+loops sync-telegram             # backfill BACKFILL_DAYS, then incremental; chunks + embeds
+```
+
+Synced: DMs and groups you've posted in. Skipped: channels, bots, muted mega-groups.
+Override per chat with `TG_CHAT_ALLOWLIST` / `TG_CHAT_DENYLIST` (JSON lists of chat ids).
+`TG_MAX_CHATS` caps chats per run to avoid FloodWait on the first backfill.
+
 ## Tests
 
 ```bash
