@@ -67,6 +67,34 @@ async def _print_loops(kind: str | None, status: str) -> None:
         print("no open loops")
 
 
+async def _demo(action: str, force: bool, process: bool) -> None:
+    from loops.demo.seed import DemoError, reset_demo, seed_demo
+
+    if action == "reset":
+        print(f"removed {await reset_demo()} demo sources")
+        return
+    try:
+        print(await seed_demo(force=force, process=process))
+    except DemoError as e:
+        raise SystemExit(str(e)) from e
+
+
+async def _eval(mode: str | None, out: str | None) -> None:
+    from pathlib import Path
+
+    from loops.db.session import session_scope
+    from loops.demo.eval import render_report, run_eval
+    from loops.llm.token_factory import get_llm
+
+    async with session_scope() as session:
+        report = render_report(await run_eval(session, get_llm(), mode))
+    if out:
+        Path(out).write_text(report)
+        print(f"wrote {out}")
+    else:
+        print(report)
+
+
 async def _gmail_login() -> None:
     import secrets
     from urllib.parse import parse_qs, urlparse
@@ -125,6 +153,13 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("bot", help="run the Telegram bot")
     sub.add_parser("worker", help="run the scheduler (sync every few minutes, daily digest)")
     sub.add_parser("digest", help="send the daily digest now")
+    demo = sub.add_parser("demo", help="load or remove fictional demo data")
+    demo.add_argument("action", choices=["seed", "reset"])
+    demo.add_argument("--force", action="store_true", help="seed even if real sources exist")
+    demo.add_argument("--no-process", action="store_true", help="skip chunk/embed/extract")
+    ev = sub.add_parser("eval", help="run the eval set against the demo data")
+    ev.add_argument("--mode", choices=["tools", "router"])
+    ev.add_argument("--out", help="write the markdown report here")
     people = sub.add_parser("people", help="review cross-source people merges")
     people.add_argument("action", choices=["suggest", "merge"])
     people.add_argument("ids", nargs="*", type=int, help="merge: KEEP_ID OTHER_ID")
@@ -161,6 +196,10 @@ def main(argv: list[str] | None = None) -> None:
         from loops.bot.digest import send_digest
 
         print("sent" if asyncio.run(send_digest()) else "nothing to send (or bot not configured)")
+    elif args.cmd == "demo":
+        asyncio.run(_demo(args.action, args.force, not args.no_process))
+    elif args.cmd == "eval":
+        asyncio.run(_eval(args.mode, args.out))
     elif args.cmd == "people":
         asyncio.run(_people(args.action, args.ids, args.apply))
 

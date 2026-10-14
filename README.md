@@ -113,6 +113,27 @@ skipped on days with nothing open.
 
 A Postgres advisory lock lets only one sync run at a time across the worker, API and bot.
 
+## Demo data and evals
+
+For recording the demo, use fictional data instead of your real inbox. Point
+`DATABASE_URL` at a separate demo database, then:
+
+```bash
+loops demo seed                  # ~30 Gmail + Telegram messages over two weeks; chunk, embed, extract
+loops eval --out eval-report.md  # 20 questions with expected sources + extraction precision/recall
+loops eval --mode router         # same, with the fixed router instead of free tool calling
+loops demo reset                 # remove the demo data
+```
+
+The demo has promises (made and kept), people you're waiting on, postponed meetings,
+and Robi, who shows up on both Telegram and Gmail and gets merged. Dates are relative to
+today. `demo seed` refuses to run on a database that already has real sources.
+
+The eval passes an answerable question when the answer cites at least one expected
+source, and a negative question when it cites nothing. For extraction it reports
+precision and recall of open loops against the expected set. It also flags anything
+left open that its own thread already fulfilled.
+
 ## Run everything
 
 ```bash
