@@ -30,7 +30,10 @@ OAUTH_STATE_COOKIE = "gmail_oauth_state"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if not get_settings().web_password:
+    s = get_settings()
+    if not s.web_password:
+        if s.loops_env == "production":
+            raise RuntimeError("WEB_PASSWORD must be set in production")
         log.warning("WEB_PASSWORD is not set: the API is open to anyone who can reach it")
     yield
     await dispose_engine()
@@ -214,10 +217,14 @@ async def gmail_connect(response: Response) -> dict:
     return {"url": gmail.authorization_url(state)}
 
 
-@app.get("/sources/gmail/callback", dependencies=[Auth])
+@app.get("/sources/gmail/callback")
 async def gmail_callback(request: Request, code: str, state: str) -> dict:
     expected = request.cookies.get(OAUTH_STATE_COOKIE)
-    if not expected or not secrets.compare_digest(expected, state):
+    if not expected:
+        # Started from `loops gmail-login`: the CLI exchanges the code, not this endpoint.
+        return {"message": "Copy this page's full URL and paste it into the `loops gmail-login` prompt."}
+    await require_auth(request)
+    if not secrets.compare_digest(expected, state):
         raise HTTPException(status_code=400, detail="OAuth state mismatch")
     try:
         source = await gmail.exchange_code(code)

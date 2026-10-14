@@ -141,8 +141,10 @@ docker compose up -d --build     # db, migrate, api, worker, bot
 ```
 
 `./secrets` is mounted into the containers for the Telegram session. Run
-`loops telegram-login` once on the host (or `docker compose run --rm api loops telegram-login`)
-before starting the worker.
+`docker compose run --rm -it api loops telegram-login` once before starting the worker.
+Locally the API is on `http://127.0.0.1:8000`.
+
+To deploy to a Nebius AI Cloud VM with HTTPS, see [DEPLOY.md](DEPLOY.md).
 
 ## API
 

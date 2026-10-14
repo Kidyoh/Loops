@@ -2,18 +2,23 @@ x-app: &app
   build: .
   env_file: .env
   environment:
-    DATABASE_URL: postgresql+asyncpg://loops:loops@db:5432/loops
+    DATABASE_URL: postgresql+asyncpg://loops:${POSTGRES_PASSWORD:-loops}@db:5432/loops
   depends_on:
     db:
       condition: service_healthy
   restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
   db:
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: loops
-      POSTGRES_PASSWORD: loops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loops}
       POSTGRES_DB: loops
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -22,6 +27,7 @@ services:
       interval: 5s
       retries: 10
     restart: unless-stopped
+    logging: *logging
 
   migrate:
     <<: *app
@@ -30,11 +36,17 @@ services:
 
   api:
     <<: *app
-    command: uvicorn loops.api.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn loops.api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
+    # Local only; in production Caddy fronts it (docker-compose.prod.yml).
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./secrets:/app/secrets
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       migrate:
         condition: service_completed_successfully

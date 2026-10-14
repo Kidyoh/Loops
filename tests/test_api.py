@@ -85,3 +85,23 @@ async def test_delete_source_wipes_rows(client, db):
     assert (await client.delete(f"/sources/{gmail_id}")).status_code == 200
     assert (await client.get(f"/messages/{ids['g1']}")).status_code == 404
     assert (await client.get(f"/messages/{ids['1']}")).status_code == 200
+
+
+async def test_gmail_callback_cli_flow_does_not_exchange(client, monkeypatch):
+    called = []
+    monkeypatch.setattr("loops.ingest.gmail.exchange_code", lambda code: called.append(code))
+    r = await client.get("/sources/gmail/callback", params={"code": "c", "state": "s"})
+    assert r.status_code == 200 and "loops gmail-login" in r.json()["message"]
+    assert called == []
+    client.cookies.set("gmail_oauth_state", "s")
+    assert (await client.get("/sources/gmail/callback", params={"code": "c", "state": "s"})).status_code == 401
+
+
+async def test_production_requires_password(monkeypatch):
+    from loops.api.main import app, lifespan
+
+    monkeypatch.setattr(get_settings(), "web_password", "")
+    monkeypatch.setattr(get_settings(), "loops_env", "production")
+    with pytest.raises(RuntimeError, match="WEB_PASSWORD"):
+        async with lifespan(app):
+            pass

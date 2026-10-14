@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     bot_token: str = ""
     owner_telegram_id: int = 0
 
+    # "production" makes a missing WEB_PASSWORD fatal at API startup.
+    loops_env: str = "development"
+
     encryption_key: str = ""
     web_password: str = ""
     public_base_url: str = "http://localhost:8000"
